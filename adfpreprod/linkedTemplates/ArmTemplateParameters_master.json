@@ -1,0 +1,36 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adfpreprod"
+		},
+		"ls_banking_db_password": {
+			"value": ""
+		},
+		"ls_adls_properties_typeProperties_url": {
+			"value": "https://preprodstoragedl.dfs.core.windows.net/"
+		},
+		"ls_banking_db_properties_typeProperties_server": {
+			"value": "adfpreprodsqlserver.database.windows.net"
+		},
+		"ls_banking_db_properties_typeProperties_database": {
+			"value": "banking_db"
+		},
+		"ls_banking_db_properties_typeProperties_userName": {
+			"value": "adf_sql_server"
+		},
+		"trigger1_properties_typeProperties_scope": {
+			"value": "/subscriptions/97d0322e-0bf1-4076-8169-73856ada0cb3/resourceGroups/banking/providers/Microsoft.Storage/storageAccounts/preprodstoragedl"
+		},
+		"trigger_event_storage_properties_typeProperties_scope": {
+			"value": "/subscriptions/97d0322e-0bf1-4076-8169-73856ada0cb3/resourceGroups/banking/providers/Microsoft.Storage/storageAccounts/preprodstoragedl"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}
