@@ -1,0 +1,15 @@
+{
+	"name": "adfpreprod",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Disabled",
+			"editable": true
+		}
+	},
+	"location": "centralindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "6161ba83-29e6-4275-8e93-cd3606fc6f65",
+		"tenantId": "8204727b-116e-46a8-8c85-4499e4677200"
+	}
+}

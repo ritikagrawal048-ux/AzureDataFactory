@@ -1,0 +1,70 @@
+{
+	"name": "EMAIL_NOTIFICATION",
+	"properties": {
+		"activities": [
+			{
+				"name": "SEND_EMAIL",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"url": "https://prod-05.northcentralus.logic.azure.com:443/workflows/9bffac8ca4514481b164981ea67dc4fc/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=werFWxR7GRYivxQ2VoQUoJ7XIIk55B5gz3j42L5Yxxo",
+					"body": {
+						"value": "{\n  \"datafactory_name\": \"@{pipeline().parameters.datafactory_name}\",\n  \"pipeline_name\": \"@{pipeline().parameters.pipeline_name}\",\n  \"pipeline_runid\": \"@{pipeline().parameters.pipeline_runid}\",\n  \"pipeline_start_time\": \"@{pipeline().parameters.pipeline_start_time}\",\n  \"pipeline_end_time\": \"@{pipeline().parameters.pipeline_end_time}\",\n  \"job_name\": \"@{pipeline().parameters.job_name}\",\n  \"table_name\": \"@{pipeline().parameters.table_name}\",\n  \"error_message\": \"@{pipeline().parameters.error_message}\",\n  \"to\": \"@{pipeline().parameters.to}\",\n  \"cc\": \"@{pipeline().parameters.cc}\",\n  \"job_status\": \"@{pipeline().parameters.job_status}\"\n}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"concurrency": 2,
+		"parameters": {
+			"datafactory_name": {
+				"type": "string"
+			},
+			"pipeline_name": {
+				"type": "string"
+			},
+			"pipeline_runid": {
+				"type": "string"
+			},
+			"pipeline_start_time": {
+				"type": "string"
+			},
+			"pipeline_end_time": {
+				"type": "string"
+			},
+			"job_name": {
+				"type": "string"
+			},
+			"table_name": {
+				"type": "string"
+			},
+			"error_message": {
+				"type": "string"
+			},
+			"to": {
+				"type": "string"
+			},
+			"cc": {
+				"type": "string"
+			},
+			"job_status": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-26T13:38:41Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

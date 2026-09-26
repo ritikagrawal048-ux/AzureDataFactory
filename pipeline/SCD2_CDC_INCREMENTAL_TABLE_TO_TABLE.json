@@ -1,0 +1,421 @@
+{
+	"name": "SCD2_CDC_INCREMENTAL_TABLE_TO_TABLE",
+	"properties": {
+		"activities": [
+			{
+				"name": "Fetch_Last_CDC_LSN",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat(\n    'SELECT sys.fn_varbintohexstr(LastProcessedLSN) AS LastProcessedLSN\n     FROM ',\n    pipeline().parameters.schema,\n    '.',\n    pipeline().parameters.cdc_table_name,\n    '\n     WHERE TableName = ''',\n    pipeline().parameters.table_name,\n    ''''\n)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.schema",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@pipeline().parameters.cdc_table_name",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "SQL_SOURCE_STAGING",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Fetch_Last_CDC_LSN",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Fetch_Current_CDC_LSN",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Truncate Staging",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat(\n    'SELECT\n        CustomerID,\n        CustomerName,\n        Region,\n        Email,\n        ModifiedDate,\n        __$operation AS CDC_Operation\n     FROM cdc.fn_cdc_get_all_changes_',\n    pipeline().parameters.schema,\n    '_',\n    pipeline().parameters.table_name,\n    '(\n        CONVERT(binary(10), ''',\n    activity('Fetch_Last_CDC_LSN').output.firstRow.LastProcessedLSN,\n    ''', 1),\n        CONVERT(binary(10), ''',\n    activity('Fetch_Current_CDC_LSN').output.firstRow.MaxLSN,\n    ''', 1),\n        ''all''\n    )'\n)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.schema",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@pipeline().parameters.table_name",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.schema",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@pipeline().parameters.staging_table",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "EMAIL_ON_SUCCESS",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "CDC_SCD2_STAGING_TARGET",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "EMAIL_NOTIFICATION",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"datafactory_name": {
+							"value": "@pipeline().DataFactory\n",
+							"type": "Expression"
+						},
+						"pipeline_name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"pipeline_runid": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"pipeline_start_time": {
+							"value": "@pipeline().TriggerTime",
+							"type": "Expression"
+						},
+						"pipeline_end_time": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"job_name": "INGESTING DATA VIA SQL",
+						"table_name": {
+							"value": "@pipeline().parameters.table_name",
+							"type": "Expression"
+						},
+						"error_message": "NA",
+						"to": "ritik.agrawal049@gmail.com",
+						"cc": "NA",
+						"job_status": "SUCCESS"
+					}
+				}
+			},
+			{
+				"name": "EMAIL_ON_FAILURE",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "CDC_SCD2_STAGING_TARGET",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "EMAIL_NOTIFICATION",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"datafactory_name": {
+							"value": "@pipeline().DataFactory\n",
+							"type": "Expression"
+						},
+						"pipeline_name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"pipeline_runid": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"pipeline_start_time": {
+							"value": "@pipeline().TriggerTime",
+							"type": "Expression"
+						},
+						"pipeline_end_time": {
+							"value": "@utcNow()",
+							"type": "Expression"
+						},
+						"job_name": "INGESTING DATA VIA SQL",
+						"table_name": {
+							"value": "@pipeline().parameters.table_name",
+							"type": "Expression"
+						},
+						"error_message": {
+							"value": "@{activity('CDC_SCD2_STAGING_TARGET').error.message}\"",
+							"type": "Expression"
+						},
+						"to": "ritik.agrawal049@gmail.com",
+						"cc": "NA",
+						"job_status": "FAILURE"
+					}
+				}
+			},
+			{
+				"name": "UPDATE_LATEST_CDC_LSN",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "CDC_SCD2_STAGING_TARGET",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_banking_db",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "@concat(\n    'UPDATE ',\n    pipeline().parameters.schema,\n    '.',\n    pipeline().parameters.cdc_table_name,\n    ' SET LastProcessedLSN = CONVERT(BINARY(10), ''',\n    activity('Fetch_Current_CDC_LSN').output.firstRow.MaxLSN,\n    ''', 1)',\n    ' WHERE TableName = ''',\n    pipeline().parameters.table_name,\n    ''''\n)",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00",
+					"logSettings": {
+						"logDestination": "ActivityOutput"
+					}
+				}
+			},
+			{
+				"name": "Fetch_Current_CDC_LSN",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "SELECT sys.fn_varbintohexstr(sys.fn_cdc_get_max_lsn()) AS MaxLSN;",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.schema",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@pipeline().parameters.table_name",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "Truncate Staging",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_banking_db",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "@concat(\n    'TRUNCATE TABLE ',\n    pipeline().parameters.schema,\n    '.',\n    pipeline().parameters.staging_table\n)",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "CDC_SCD2_STAGING_TARGET",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "SQL_SOURCE_STAGING",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_banking_db",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "@concat(\n\n'DECLARE @BatchTime DATETIME2 = SYSUTCDATETIME();\n\nBEGIN TRANSACTION;\n\n--------------------------------------------------\n-- 1. EXPIRE CURRENT RECORDS FOR DELETE\n--------------------------------------------------\n\nUPDATE T\nSET\n    T.ValidTo = @BatchTime,\n    T.IsCurrent = 0,\n    T.UpdatedAt = @BatchTime\nFROM ',\npipeline().parameters.schema,\n'.',\npipeline().parameters.target_table,\n' AS T\nINNER JOIN ',\npipeline().parameters.schema,\n'.',\npipeline().parameters.staging_table,\n' AS S\n    ON T.CustomerID = S.CustomerID\nWHERE S.CDC_Operation = 1\n  AND T.IsCurrent = 1;\n\n\n--------------------------------------------------\n-- 2. EXPIRE CURRENT RECORDS FOR UPDATE\n--------------------------------------------------\n\nUPDATE T\nSET\n    T.ValidTo = @BatchTime,\n    T.IsCurrent = 0,\n    T.UpdatedAt = @BatchTime\nFROM ',\npipeline().parameters.schema,\n'.',\npipeline().parameters.target_table,\n' AS T\nINNER JOIN ',\npipeline().parameters.schema,\n'.',\npipeline().parameters.staging_table,\n' AS S\n    ON T.CustomerID = S.CustomerID\nWHERE S.CDC_Operation = 4\n  AND T.IsCurrent = 1;\n\n\n--------------------------------------------------\n-- 3. INSERT NEW VERSION FOR INSERT + UPDATE\n--------------------------------------------------\n\nINSERT INTO ',\npipeline().parameters.schema,\n'.',\npipeline().parameters.target_table,\n' (\n    CustomerID,\n    CustomerName,\n    Region,\n    Email,\n    ModifiedDate,\n    ValidFrom,\n    ValidTo,\n    IsCurrent,\n    CreatedAt,\n    UpdatedAt\n)\nSELECT\n    S.CustomerID,\n    S.CustomerName,\n    S.Region,\n    S.Email,\n    S.ModifiedDate,\n    @BatchTime,\n    NULL,\n    1,\n    @BatchTime,\n    NULL\nFROM ',\npipeline().parameters.schema,\n'.',\npipeline().parameters.staging_table,\n' AS S\nWHERE S.CDC_Operation IN (2, 4);\n\n\n--------------------------------------------------\n-- 4. COMMIT\n--------------------------------------------------\n\nCOMMIT TRANSACTION;'\n\n)",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"schema_watermark_table": {
+				"type": "string",
+				"defaultValue": "metadata"
+			},
+			"watermark_table_name": {
+				"type": "string",
+				"defaultValue": " table_watermarks"
+			},
+			"schema": {
+				"type": "string",
+				"defaultValue": "dbo"
+			},
+			"table_name": {
+				"type": "string",
+				"defaultValue": "Customers"
+			},
+			"staging_table": {
+				"type": "string",
+				"defaultValue": "customers_staging_CDC"
+			},
+			"target_table": {
+				"type": "string",
+				"defaultValue": "Customers_Target_SCD2"
+			},
+			"cdc_table_name": {
+				"type": "string",
+				"defaultValue": "CDC_Watermark"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-26T12:28:33Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

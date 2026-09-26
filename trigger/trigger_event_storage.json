@@ -1,0 +1,24 @@
+{
+	"name": "trigger_event_storage",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "FILE_BASED_INGESTION",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/firstcontainer/blobs/source",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/97d0322e-0bf1-4076-8169-73856ada0cb3/resourceGroups/banking/providers/Microsoft.Storage/storageAccounts/preprodstoragedl",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}

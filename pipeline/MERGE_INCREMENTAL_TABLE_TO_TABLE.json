@@ -1,0 +1,417 @@
+{
+	"name": "MERGE_INCREMENTAL_TABLE_TO_TABLE",
+	"properties": {
+		"activities": [
+			{
+				"name": "Fetch_Last_Watermark",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "Select watermark_value from metadata.@{pipeline().parameters.watermark_table_name}",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.schema_watermark_table",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@pipeline().parameters.watermark_table_name",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "SQL_SOURCE_STAGING",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "Fetch_Last_Watermark",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Fetch_MAX_Watermark",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Truncate Staging",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat(\n    'SELECT * FROM ',\n    pipeline().parameters.schema,\n    '.',\n    pipeline().parameters.table_name,\n    ' WHERE modifieddate >= ''',\n    activity('Fetch_Last_Watermark').output.firstRow.watermark_value,\n    ''' AND modifieddate < ''',\n    activity('Fetch_MAX_Watermark').output.firstRow.max_modified_date,\n    ''''\n)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.schema",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@pipeline().parameters.table_name",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.schema",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@pipeline().parameters.staging_table",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "EMAIL_ON_SUCCESS",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "MERGE_STAGING_TARGET",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "EMAIL_NOTIFICATION",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"datafactory_name": {
+							"value": "@pipeline().DataFactory\n",
+							"type": "Expression"
+						},
+						"pipeline_name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"pipeline_runid": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"pipeline_start_time": {
+							"value": "@pipeline().TriggerTime",
+							"type": "Expression"
+						},
+						"pipeline_end_time": {
+							"value": "@{utcnow()}",
+							"type": "Expression"
+						},
+						"job_name": "INGESTING DATA VIA SQL",
+						"table_name": {
+							"value": "@pipeline().parameters.table_name",
+							"type": "Expression"
+						},
+						"error_message": "NA",
+						"to": "ritik.agrawal049@gmail.com",
+						"cc": "NA",
+						"job_status": "SUCCESS"
+					}
+				}
+			},
+			{
+				"name": "EMAIL_ON_FAILURE",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "MERGE_STAGING_TARGET",
+						"dependencyConditions": [
+							"Failed"
+						]
+					}
+				],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "EMAIL_NOTIFICATION",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true,
+					"parameters": {
+						"datafactory_name": {
+							"value": "@pipeline().DataFactory\n",
+							"type": "Expression"
+						},
+						"pipeline_name": {
+							"value": "@pipeline().Pipeline",
+							"type": "Expression"
+						},
+						"pipeline_runid": {
+							"value": "@pipeline().RunId",
+							"type": "Expression"
+						},
+						"pipeline_start_time": {
+							"value": "@pipeline().TriggerTime",
+							"type": "Expression"
+						},
+						"pipeline_end_time": {
+							"value": "@utcNow()",
+							"type": "Expression"
+						},
+						"job_name": "INGESTING DATA VIA SQL",
+						"table_name": {
+							"value": "@pipeline().parameters.table_name",
+							"type": "Expression"
+						},
+						"error_message": {
+							"value": "@{activity('MERGE_STAGING_TARGET').error.message}\"",
+							"type": "Expression"
+						},
+						"to": "ritik.agrawal049@gmail.com",
+						"cc": "NA",
+						"job_status": "FAILURE"
+					}
+				}
+			},
+			{
+				"name": "UPDATE_LATEST_WATERMARK",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "MERGE_STAGING_TARGET",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_banking_db",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "@concat(\n    'UPDATE ',\n    pipeline().parameters.schema_watermark_table,\n    '.',\n    pipeline().parameters.watermark_table_name,\n    ' SET watermark_value = ''',\n    activity('Fetch_MAX_Watermark').output.firstRow.max_modified_date,\n    ''' WHERE table_name = ''',\n    pipeline().parameters.table_name,\n    ''''\n)",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00",
+					"logSettings": {
+						"logDestination": "ActivityOutput"
+					}
+				}
+			},
+			{
+				"name": "Fetch_MAX_Watermark",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@concat(\n    'SELECT MAX(modifieddate) AS max_modified_date FROM ',\n    pipeline().parameters.schema,\n    '.',\n    pipeline().parameters.table_name\n)",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference",
+						"parameters": {
+							"schema": {
+								"value": "@pipeline().parameters.schema",
+								"type": "Expression"
+							},
+							"table_name": {
+								"value": "@pipeline().parameters.table_name",
+								"type": "Expression"
+							}
+						}
+					}
+				}
+			},
+			{
+				"name": "Truncate Staging",
+				"type": "Script",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_banking_db",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "@concat(\n    'TRUNCATE TABLE ',\n    pipeline().parameters.schema,\n    '.',\n    pipeline().parameters.staging_table\n)",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			},
+			{
+				"name": "MERGE_STAGING_TARGET",
+				"type": "Script",
+				"dependsOn": [
+					{
+						"activity": "SQL_SOURCE_STAGING",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "ls_banking_db",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": {
+								"value": "@concat(\n'MERGE ',\npipeline().parameters.schema,\n'.',\npipeline().parameters.target_table,\n' AS T\nUSING ',\npipeline().parameters.schema,\n'.',\npipeline().parameters.staging_table,\n' AS S\nON T.CustomerID = S.CustomerID\n\nWHEN MATCHED THEN\n    UPDATE SET\n        T.CustomerName = S.CustomerName,\n        T.Region = S.Region,\n        T.Email = S.Email,\n        T.ModifiedDate = S.ModifiedDate\n\nWHEN NOT MATCHED BY TARGET THEN\n    INSERT (\n        CustomerID,\n        CustomerName,\n        Region,\n        Email,\n        ModifiedDate\n    )\n    VALUES (\n        S.CustomerID,\n        S.CustomerName,\n        S.Region,\n        S.Email,\n        S.ModifiedDate\n    );'\n)",
+								"type": "Expression"
+							}
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"schema_watermark_table": {
+				"type": "string",
+				"defaultValue": "metadata"
+			},
+			"watermark_table_name": {
+				"type": "string",
+				"defaultValue": " table_watermarks"
+			},
+			"schema": {
+				"type": "string",
+				"defaultValue": "dbo"
+			},
+			"table_name": {
+				"type": "string",
+				"defaultValue": "customers"
+			},
+			"staging_table": {
+				"type": "string",
+				"defaultValue": "customers_staging"
+			},
+			"target_table": {
+				"type": "string",
+				"defaultValue": "customers_target"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-26T06:20:16Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

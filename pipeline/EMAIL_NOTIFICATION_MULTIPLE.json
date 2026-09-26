@@ -1,0 +1,98 @@
+{
+	"name": "EMAIL_NOTIFICATION_MULTIPLE",
+	"properties": {
+		"activities": [
+			{
+				"name": "SEND_EMAIL",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "Set Email Recipient",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "Set Email  Body",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"headers": {
+						"Content-Type": "application/json"
+					},
+					"url": "https://prod-31.centralindia.logic.azure.com:443/workflows/971fe3a504824eccbd532a2fe941404a/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=cOI7uns1Cv3G0BSivYj2xf_-e4S6Uk1tsP_fUtaCxs8",
+					"body": {
+						"value": "{\n    \"to\" : @{pipeline().parameters.to},\n    \"body\" : @{variables('email_body')}\n\n}",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set Email Recipient",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "email_recipient",
+					"value": {
+						"value": "@pipeline().parameters.to",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Set Email  Body",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "email_body",
+					"value": {
+						"value": "Pipeline Ingestion activity status\n\n@{pipeline().parameters.table_status}",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"concurrency": 2,
+		"parameters": {
+			"to": {
+				"type": "string"
+			},
+			"table_status": {
+				"type": "array"
+			}
+		},
+		"variables": {
+			"email_recipient": {
+				"type": "String"
+			},
+			"email_body": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2026-09-26T14:53:18Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
