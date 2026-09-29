@@ -1,0 +1,23 @@
+{
+	"name": "PostgreSql1",
+	"properties": {
+		"annotations": [],
+		"type": "PostgreSqlV2",
+		"typeProperties": {
+			"server": "ep-gentle-glitter-b5hms7cy-pooler.c-7.us-east-2.aws.neon.tech",
+			"port": 5432,
+			"database": "neondb",
+			"username": "neondb_owner",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "akv_caresync",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "neondbpassword"
+			},
+			"sslMode": 2,
+			"authenticationType": "Basic"
+		}
+	}
+}
