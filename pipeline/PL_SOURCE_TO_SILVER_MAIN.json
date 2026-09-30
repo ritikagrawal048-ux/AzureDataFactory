@@ -157,8 +157,7 @@
 				"defaultValue": "neon_postgres"
 			},
 			"adf_run_id": {
-				"type": "string",
-				"defaultValue": "a2"
+				"type": "string"
 			}
 		},
 		"variables": {
