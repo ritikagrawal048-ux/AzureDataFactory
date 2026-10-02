@@ -11,6 +11,30 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'ls_banking_db'"
 		},
+		"AzureDatabricks1_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0930-141415-3qprfwd7"
+		},
+		"AzureKeyVault1_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://adfpreprod.vault.azure.net/"
+		},
+		"PostgreSql1_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "ep-gentle-glitter-b5hms7cy-pooler.c-7.us-east-2.aws.neon.tech"
+		},
+		"PostgreSql1_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "neondb"
+		},
+		"PostgreSql1_properties_typeProperties_username": {
+			"type": "string",
+			"defaultValue": "neondb_owner"
+		},
+		"akv_caresync_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://caresync.vault.azure.net/"
+		},
 		"ls_adls_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://preprodstoragedl.dfs.core.windows.net/"
@@ -26,6 +50,22 @@
 		"ls_banking_db_properties_typeProperties_userName": {
 			"type": "string",
 			"defaultValue": "adf_sql_server"
+		},
+		"ls_caresync_db_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "adfpreprodsqlserver.database.windows.net"
+		},
+		"ls_caresync_db_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "sql_db_caresync"
+		},
+		"ls_caresync_db_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "adf_sql_server"
+		},
+		"ls_caresync_storage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://caresyncpreprod.dfs.core.windows.net/"
 		},
 		"trigger1_properties_typeProperties_scope": {
 			"type": "string",
@@ -65,6 +105,12 @@
 					"ls_banking_db_password": {
 						"value": "[parameters('ls_banking_db_password')]"
 					},
+					"AzureKeyVault1_properties_typeProperties_baseUrl": {
+						"value": "[parameters('AzureKeyVault1_properties_typeProperties_baseUrl')]"
+					},
+					"akv_caresync_properties_typeProperties_baseUrl": {
+						"value": "[parameters('akv_caresync_properties_typeProperties_baseUrl')]"
+					},
 					"ls_adls_properties_typeProperties_url": {
 						"value": "[parameters('ls_adls_properties_typeProperties_url')]"
 					},
@@ -77,15 +123,59 @@
 					"ls_banking_db_properties_typeProperties_userName": {
 						"value": "[parameters('ls_banking_db_properties_typeProperties_userName')]"
 					},
+					"ls_caresync_storage_properties_typeProperties_url": {
+						"value": "[parameters('ls_caresync_storage_properties_typeProperties_url')]"
+					},
 					"trigger1_properties_typeProperties_scope": {
 						"value": "[parameters('trigger1_properties_typeProperties_scope')]"
+					},
+					"AzureDatabricks1_properties_typeProperties_existingClusterId": {
+						"value": "[parameters('AzureDatabricks1_properties_typeProperties_existingClusterId')]"
+					},
+					"PostgreSql1_properties_typeProperties_server": {
+						"value": "[parameters('PostgreSql1_properties_typeProperties_server')]"
+					},
+					"PostgreSql1_properties_typeProperties_database": {
+						"value": "[parameters('PostgreSql1_properties_typeProperties_database')]"
+					},
+					"PostgreSql1_properties_typeProperties_username": {
+						"value": "[parameters('PostgreSql1_properties_typeProperties_username')]"
+					},
+					"ls_caresync_db_properties_typeProperties_server": {
+						"value": "[parameters('ls_caresync_db_properties_typeProperties_server')]"
+					},
+					"ls_caresync_db_properties_typeProperties_database": {
+						"value": "[parameters('ls_caresync_db_properties_typeProperties_database')]"
+					},
+					"ls_caresync_db_properties_typeProperties_userName": {
+						"value": "[parameters('ls_caresync_db_properties_typeProperties_userName')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "adfpreprod_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
 					},
 					"trigger_event_storage_properties_typeProperties_scope": {
 						"value": "[parameters('trigger_event_storage_properties_typeProperties_scope')]"
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'adfpreprod_ArmTemplate_0')]"
+			]
 		}
 	]
 }

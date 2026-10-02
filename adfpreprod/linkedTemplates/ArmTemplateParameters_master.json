@@ -8,6 +8,24 @@
 		"ls_banking_db_password": {
 			"value": ""
 		},
+		"AzureDatabricks1_properties_typeProperties_existingClusterId": {
+			"value": "0930-141415-3qprfwd7"
+		},
+		"AzureKeyVault1_properties_typeProperties_baseUrl": {
+			"value": "https://adfpreprod.vault.azure.net/"
+		},
+		"PostgreSql1_properties_typeProperties_server": {
+			"value": "ep-gentle-glitter-b5hms7cy-pooler.c-7.us-east-2.aws.neon.tech"
+		},
+		"PostgreSql1_properties_typeProperties_database": {
+			"value": "neondb"
+		},
+		"PostgreSql1_properties_typeProperties_username": {
+			"value": "neondb_owner"
+		},
+		"akv_caresync_properties_typeProperties_baseUrl": {
+			"value": "https://caresync.vault.azure.net/"
+		},
 		"ls_adls_properties_typeProperties_url": {
 			"value": "https://preprodstoragedl.dfs.core.windows.net/"
 		},
@@ -19,6 +37,18 @@
 		},
 		"ls_banking_db_properties_typeProperties_userName": {
 			"value": "adf_sql_server"
+		},
+		"ls_caresync_db_properties_typeProperties_server": {
+			"value": "adfpreprodsqlserver.database.windows.net"
+		},
+		"ls_caresync_db_properties_typeProperties_database": {
+			"value": "sql_db_caresync"
+		},
+		"ls_caresync_db_properties_typeProperties_userName": {
+			"value": "adf_sql_server"
+		},
+		"ls_caresync_storage_properties_typeProperties_url": {
+			"value": "https://caresyncpreprod.dfs.core.windows.net/"
 		},
 		"trigger1_properties_typeProperties_scope": {
 			"value": "/subscriptions/97d0322e-0bf1-4076-8169-73856ada0cb3/resourceGroups/banking/providers/Microsoft.Storage/storageAccounts/preprodstoragedl"
