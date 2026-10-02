@@ -79,7 +79,7 @@
 				"typeProperties": {
 					"variableName": "email_subject",
 					"value": {
-						"value": "@{pipeline().globalParameters.env} | @{if(greater(activity('Check overall failed count').output.firstRow.count,0),'FAILED','SUCCESS')} | CARESYNC_MASTER_RUN",
+						"value": "@{pipeline().globalParameters.env} | @{if(greater(activity('Check overall failed count').output.firstRow.count,0),'FAILED','SUCCESS')} | CARESYNC_MASTER_RUN\n\n",
 						"type": "Expression"
 					}
 				}
@@ -100,7 +100,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "Select * from ctrl.audit_log where adf_run_id = '@{pipeline().parameters.adf_run_id}' and status != 'SUCCESS'",
+							"value": "Select count(*) as count from ctrl.audit_log where adf_run_id = '@{pipeline().parameters.adf_run_id}' and status != 'SUCCESS'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
