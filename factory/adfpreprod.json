@@ -1,6 +1,12 @@
 {
 	"name": "adfpreprod",
 	"properties": {
+		"globalParameters": {
+			"email_receipent": {
+				"type": "string",
+				"value": "ritikagrawal047@gmail.com"
+			}
+		},
 		"trustModeClaimForMi": {
 			"value": "Disabled",
 			"editable": true
