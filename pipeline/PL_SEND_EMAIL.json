@@ -18,7 +18,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "Select * from ctrl.audit_log where adf_run_id = @{pipeline().parameters.adf_run_id}",
+							"value": "Select * from ctrl.audit_log where adf_run_id = '@{pipeline().parameters.adf_run_id}'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -100,7 +100,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "Select * from ctrl.audit_log where adf_run_id = @{pipeline().parameters.adf_run_id} and status != 'SUCCESS'",
+							"value": "Select * from ctrl.audit_log where adf_run_id = '@{pipeline().parameters.adf_run_id}' and status != 'SUCCESS'",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
